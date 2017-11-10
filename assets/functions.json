@@ -1,0 +1,19 @@
+{
+  "exports": [
+    {
+      "id": "embedded.commerce.checkouts.groupings.after",
+      "virtualPath": "./dist\\commerce.checkouts.manifest.all.js",
+      "actionId": "embedded.commerce.checkouts.groupings.after"
+    },
+    {
+      "id": "embedded.platform.applications.install",
+      "virtualPath": "./dist\\platform.applications.manifest.all.js",
+      "actionId": "embedded.platform.applications.install"
+    },
+    {
+      "id": "http.storefront.routes",
+      "virtualPath": "./dist\\storefront.manifest.all.js",
+      "actionId": "http.storefront.routes"
+    }
+  ]
+}
