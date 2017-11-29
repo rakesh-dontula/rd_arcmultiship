@@ -43,7 +43,7 @@ module.exports = function (context, callback) {
           else{
             //create a new group
             console.log("Found more than one item in the group. Creating a new group");
-            var newGroup = createnewGroup(item);
+            var newGroup = createnewGroup(item);            
             console.log("New group created for the item.", newGroup);
             groupings.push(newGroup);
           }
@@ -59,10 +59,60 @@ module.exports = function (context, callback) {
     });
 
   }
-  if(groupings.length > 0){
-    console.log(groupings[0].shippingMethodCode);
-  }
  
+//   Split pickup groups by location
+  var nonShipGroups = _.reject(groupings,function(item){
+     return item.fulfillmentMethod === "Ship";
+  });
+
+  console.log("Nonship Groups", nonShipGroups);
+
+  nonShipGroups.forEach(function(group){
+    group.explicitNonShipGroup = true;
+    if(group.fulfillmentMethod === "Pickup" && group.orderItemIds.length > 1){
+      
+      //Check if orderItemIds have different fulfillment location
+      var items = groupItemsByFullfillmentLocation(orderItems,group.orderItemIds);  
+      _.each(
+        _.sortBy(
+            _.toArray(items), function (num) {
+                return num;
+            }
+        ).reverse().slice(1),
+        function (array) {
+          console.log("Spliting pickup groups by fullfillment location-", array[0].fulfillmentLocationCode);
+          console.log("Creating new pick up group for",array[0].fulfillmentLocationCode);
+          var newGroup = {};
+          newGroup.orderItemIds = [];
+          newGroup.destinationId = group.destinationId;
+          newGroup.fulfillmentMethod = group.fulfillmentMethod;
+          newGroup.explicitNonShipGroup = true;
+          array.forEach(function(item){           
+            newGroup.orderItemIds.push(item.id);
+            console.log("Removing item from existing group",item.id);
+            var filterIds = _.reject(group.orderItemIds, function(itemId){ return itemId === item.id; });
+            group.orderItemIds = filterIds;
+          });   
+          console.log("new group items",newGroup.orderItemIds);
+          groupings.push(newGroup);       
+        }
+    );      
+    }
+  });  
+  
+  //invoke validation error 
+  // var pickupItemId;
+  // var pickupGrouping= _.findWhere(groupings, {FulfillmentMethod : "Pickup"});
+  // console.log("PickupGrouping",pickupGrouping);
+  // if(pickupGrouping){
+  //    pickupItemId = pickupGrouping.orderItemIds[0];
+  // }
+  // var shipGrouping = _.findWhere(groupings,{FulfillmentMethod : "Ship"}); 
+  // if(shipGrouping && pickupGrouping){
+  //   shipGrouping.orderItemIds.push(pickupItemId);
+  // }
+    
+
   console.log("Total number of groupings= " + groupings.length);
   context.exec.setGroupings(groupings);
   console.log("Finish..");
@@ -100,9 +150,20 @@ function createnewGroup(item) {
   newGroup.orderItemIds = [item.id];
   newGroup.destinationId = item.destinationId;
   newGroup.fulfillmentMethod = item.fulfillmentMethod;
+  if(item.fulfillmentMethod === 'Pickup'){
+    newGroup.explicitNonShipGroup = true;
+  }  
   return newGroup;
 }
 
+
+function groupItemsByFullfillmentLocation(orderItems,itemIds){
+  
+  var filteredItems = _.filter(orderItems, function(item){
+    return _.contains(itemIds,item.id);
+  });
+  return _.groupBy(filteredItems,'fulfillmentLocationCode');  
+}
 
 
 },{"underscore":3}],3:[function(require,module,exports){

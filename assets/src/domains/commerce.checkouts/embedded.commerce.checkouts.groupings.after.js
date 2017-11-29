@@ -33,7 +33,7 @@ module.exports = function (context, callback) {
           else{
             //create a new group
             console.log("Found more than one item in the group. Creating a new group");
-            var newGroup = createnewGroup(item);
+            var newGroup = createnewGroup(item);            
             console.log("New group created for the item.", newGroup);
             groupings.push(newGroup);
           }
@@ -46,17 +46,14 @@ module.exports = function (context, callback) {
           console.log("Groups are valid for this item..");
         }
       }
-      //Split Pick up groups by location
-
-
     });
 
   }
-
-  //Split pickup groups by location
+ 
+//   Split pickup groups by location
   var nonShipGroups = _.reject(groupings,function(item){
      return item.fulfillmentMethod === "Ship";
-  });
+  }); 
 
   nonShipGroups.forEach(function(group){
     group.explicitNonShipGroup = true;
@@ -72,14 +69,15 @@ module.exports = function (context, callback) {
         ).reverse().slice(1),
         function (array) {
           console.log("Spliting pickup groups by fullfillment location-", array[0].fulfillmentLocationCode);
-          console.log("Creating new pick up group for",array[0].fulfillmentLocationCode)
+          console.log("Creating new pick up group for",array[0].fulfillmentLocationCode);
           var newGroup = {};
           newGroup.orderItemIds = [];
           newGroup.destinationId = group.destinationId;
           newGroup.fulfillmentMethod = group.fulfillmentMethod;
+          newGroup.explicitNonShipGroup = true;
           array.forEach(function(item){           
             newGroup.orderItemIds.push(item.id);
-            console.log("Removing item from existing group",item.id)
+            console.log("Removing item from existing group",item.id);
             var filterIds = _.reject(group.orderItemIds, function(itemId){ return itemId === item.id; });
             group.orderItemIds = filterIds;
           });   
@@ -90,6 +88,19 @@ module.exports = function (context, callback) {
     }
   });  
   
+  //invoke validation error 
+  // var pickupItemId;
+  // var pickupGrouping= _.findWhere(groupings, {FulfillmentMethod : "Pickup"});
+  // console.log("PickupGrouping",pickupGrouping);
+  // if(pickupGrouping){
+  //    pickupItemId = pickupGrouping.orderItemIds[0];
+  // }
+  // var shipGrouping = _.findWhere(groupings,{FulfillmentMethod : "Ship"}); 
+  // if(shipGrouping && pickupGrouping){
+  //   shipGrouping.orderItemIds.push(pickupItemId);
+  // }
+    
+
   console.log("Total number of groupings= " + groupings.length);
   context.exec.setGroupings(groupings);
   console.log("Finish..");
@@ -98,7 +109,7 @@ module.exports = function (context, callback) {
 
 function isOverSized(property) {
   if (property.attributeFQN === "tenant~isoversized") {
-    return _.findWhere(property.values, {"value": true});
+    return _.findWhere(property.values, {"Value": true});
   }
   else {
     return false;
@@ -108,7 +119,7 @@ function isOverSized(property) {
 function doesGroupContainDifferentItems(group, orderItems, productCode) {
   var productList = [];
   group.orderItemIds.forEach(function(itemId){
-    var orderItem = _.findWhere(orderItems, {id : itemId});
+    var orderItem = _.findWhere(orderItems, {Id : itemId});
     productList.push(orderItem.product.productCode);
   });
   return !_.every(productList, function(prod) { return prod === productCode; });
@@ -117,7 +128,7 @@ function doesGroupContainDifferentItems(group, orderItems, productCode) {
 
 function isOnlyItemInGroup (group, orderItems, productCode, fulfillmentMethod, destinationId){
   return group.orderItemIds.every(function(itemId){
-    var orderItem = _.findWhere(orderItems, {id : itemId});
+    var orderItem = _.findWhere(orderItems, {Id : itemId});
     return orderItem.product.productCode === productCode && orderItem.fulfillmentMethod === fulfillmentMethod && orderItem.destinationId === destinationId;
   });
 }
